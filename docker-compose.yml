@@ -1,90 +1,9 @@
 version: '3.8'
-
 services:
-  # Aplicação Viper-Pro
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     ports:
-      - "80:80"  # EasyPanel vai mapear isso pro domínio
+      - "80:80"
     volumes:
-      - ./:/var/www/html  # Hot-reload em dev
-      - ./storage:/var/www/html/storage  # Persistir logs/sessões
-    environment:
-      - APP_NAME=Viper-Pro
-      - APP_ENV=production  # Mude pra 'local' se quiser debug
-      - APP_DEBUG=false
-      - APP_URL=http://localhost  # EasyPanel ajusta pro seu domínio
-      - DB_CONNECTION=pgsql  # Ou 'mysql' se preferir
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_DATABASE=viper_pro
-      - DB_USERNAME=viper
-      - DB_PASSWORD=secret123
-      - CACHE_DRIVER=redis  # Opcional, se usar Redis
-      - SESSION_DRIVER=redis
-      - QUEUE_CONNECTION=redis
-    depends_on:
-      - db
-      - redis
+      - .:/var/www/html
     restart: unless-stopped
-    networks:
-      - viper-network
-
-  # Banco PostgreSQL
-  db:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: viper_pro
-      POSTGRES_USER: viper
-      POSTGRES_PASSWORD: secret123
-    volumes:
-      - db_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"  # Opcional, pra acessar via pgAdmin
-    restart: unless-stopped
-    networks:
-      - viper-network
-
-  # Redis (cache, sessões, queues)
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"  # Opcional
-    volumes:
-      - redis_data:/data
-    restart: unless-stopped
-    networks:
-      - viper-network
-
-  # Worker para queues (opcional, se o Viper usar Laravel Queues)
-  worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: php artisan queue:work --verbose --tries=3
-    volumes:
-      - ./:/var/www/html
-    environment:
-      - APP_ENV=production
-      - DB_HOST=db
-      - REDIS_HOST=redis
-    depends_on:
-      - db
-      - redis
-    restart: unless-stopped
-    networks:
-      - viper-network
-
-# Volumes persistentes
-volumes:
-  db_data:
-    driver: local
-  redis_data:
-    driver: local
-
-# Rede interna
-networks:
-  viper-network:
-    driver: bridge
