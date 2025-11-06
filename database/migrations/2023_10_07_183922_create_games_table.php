@@ -14,10 +14,9 @@ return new class extends Migration
         Schema::create('games', function (Blueprint $table) {
             $table->id();
             
-            // CORREÇÃO: Usa bigInteger para compatibilidade com o 'id' padrão do Laravel (BIGINT)
-            $table->bigInteger('provider_id')->unsigned()->index();
+            // CORREÇÃO: Usa foreignId()->constrained() para compatibilidade garantida com o id() de 'providers'
+            $table->foreignId('provider_id')->constrained('providers')->onDelete('cascade');
             
-            $table->foreign('provider_id')->references('id')->on('providers')->onDelete('cascade');
             $table->string('game_server_url')->nullable();
             $table->string('game_id');
             $table->string('game_name');
