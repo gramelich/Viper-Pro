@@ -13,8 +13,10 @@ return new class extends Migration
     {
         Schema::create('wallets', function (Blueprint $table) {
             $table->id();
-            $table->integer('user_id')->unsigned()->index();
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            
+            // CORREÇÃO: Usa foreignId() para garantir que a coluna seja BIGINT UNSIGNED
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            
             $table->string('currency', 20);
             $table->string('symbol', 5);
             $table->decimal('balance', 20, 2)->default(0);
