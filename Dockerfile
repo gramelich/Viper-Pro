@@ -61,9 +61,8 @@ server { \
     location ~ /\.ht { deny all; } \
 }' > /etc/nginx/http.d/default.conf
 
-# Supervisor: usando cat com EOF (100% confiável)
-RUN mkdir -p /etc/supervisor/conf.d && \
-    cat > /etc/supervisord.conf <<'EOF'
+# Supervisor: usando cat com EOF (garantido)
+RUN cat > /etc/supervisord.conf <<'EOF'
 [supervisord]
 nodaemon=true
 user=root
@@ -94,4 +93,5 @@ EOF
 
 EXPOSE 80
 
+# CMD com -n explícito
 CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisord.conf"]
