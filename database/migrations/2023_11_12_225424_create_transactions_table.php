@@ -14,8 +14,10 @@ return new class extends Migration
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
             $table->string('payment_id', 100);
-            $table->integer('user_id')->unsigned()->index();
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            
+            // CORREÇÃO: Usa foreignId() para garantir compatibilidade com BIGINT UNSIGNED da tabela 'users'
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            
             $table->string('payment_method')->nullable();
             $table->decimal('price', 20, 2)->default(0);
             $table->string('currency', 20)->default('usd');
