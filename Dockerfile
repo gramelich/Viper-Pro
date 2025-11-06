@@ -1,92 +1,77 @@
+# ========================================
+# Viper-Pro - Docker + Nginx + PHP-FPM
+# Alpine + Supervisor (sem erros)
+# ========================================
 FROM php:8.2-fpm-alpine
 
-# Instalar dependências do sistema
+# Pacotes do sistema + extensões PHP
 RUN apk add --no-cache \
     nginx \
     supervisor \
-    postgresql-dev \
+    git \
     libpng-dev \
     libjpeg-turbo-dev \
     freetype-dev \
+    libzip-dev \
+    postgresql-dev \
     zip \
     unzip \
-    libzip-dev \
-    git \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo pdo_pgsql pdo_mysql gd zip
+  && docker-php-ext-configure gd --with-freetype --with-jpeg \
+  && docker-php-ext-install pdo pdo_mysql pdo_pgsql gd zip \
+  && rm -rf /var/cache/apk/*
 
-# Instalar Composer
+# Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Diretório de trabalho
+# App
 WORKDIR /var/www/html
-
-# Copiar código da aplicação
 COPY . .
 
-# Instalar dependências do Composer
+# Composer (produção com fallback)
 RUN composer install --optimize-autoloader --no-interaction --no-progress \
-    --ignore-platform-reqs || \
-    composer install --no-dev --optimize-autoloader --no-interaction --no-progress \
+    --ignore-platform-reqs \
+    || composer install --no-dev --optimize-autoloader --no-interaction --no-progress \
     --ignore-platform-reqs
 
-# Criar .env se não existir
-RUN if [ ! -f .env ]; then \
-        cp .env.example .env 2>/dev/null || \
-        touch .env; \
-    fi
+# .env
+RUN cp .env.example .env 2>/dev/null || touch .env
 
-# Criar diretórios e ajustar permissões
-RUN mkdir -p \
-        storage/framework/sessions \
-        storage/framework/views \
-        storage/framework/cache \
-        storage/logs \
-        bootstrap/cache \
-    && chown -R www-data:www-data \
-        storage \
-        bootstrap/cache \
-    && chmod -R 775 \
-        storage \
-        bootstrap/cache
+# Permissões
+RUN mkdir -p storage bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
 
-# Configurar PHP-FPM para usar socket
-RUN mkdir -p /run/php && \
-    sed -i 's|listen = 9000|listen = /run/php/php8.2-fpm.sock|g' \
-        /usr/local/etc/php-fpm.d/www.conf && \
-    sed -i 's|;listen.owner = www-data|listen.owner = www-data|g' \
-        /usr/local/etc/php-fpm.d/www.conf && \
-    sed -i 's|;listen.group = www-data|listen.group = www-data|g' \
-        /usr/local/etc/php-fpm.d/www.conf && \
-    sed -i 's|;listen.mode = 0660|listen.mode = 0660|g' \
-        /usr/local/etc/php-fpm.d/www.conf
+# PHP-FPM: socket
+RUN mkdir -p /run/php \
+    && sed -i 's|listen =.*|listen = /run/php/php8.2-fpm.sock|' \
+       /usr/local/etc/php-fpm.d/www.conf \
+    && echo -e "listen.owner = www-data\nlisten.group = www-data\nlisten.mode = 0660" \
+       >> /usr/local/etc/php-fpm.d/www.conf
 
-# Configurar Nginx
+# Nginx
 RUN echo '\
 server { \
     listen 80; \
-    server_name localhost; \
+    server_name _; \
     root /var/www/html/public; \
     index index.php; \
     client_max_body_size 100M; \
     \
     location / { \
-        try_files \$uri \$uri/ /index.php?\$query_string; \
+        try_files $uri $uri/ /index.php?$query_string; \
     } \
     \
     location ~ \.php$ { \
         fastcgi_pass unix:/run/php/php8.2-fpm.sock; \
         fastcgi_index index.php; \
-        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name; \
         include fastcgi_params; \
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name; \
     } \
     \
-    location ~ /\.ht { \
-        deny all; \
-    } \
+    location ~ /\.ht { deny all; } \
 }' > /etc/nginx/http.d/default.conf
 
-# Supervisor (sem erro Invalid seek)
+# Supervisor (SEM Invalid seek - logfile=/dev/null)
 RUN cat > /etc/supervisord.conf <<'EOF'
 [supervisord]
 nodaemon=true
@@ -116,8 +101,6 @@ stderr_logfile_maxbytes=0
 priority=200
 EOF
 
-# Expor porta
 EXPOSE 80
 
-# Iniciar Supervisor em foreground
 CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisord.conf"]
