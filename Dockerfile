@@ -11,8 +11,14 @@ RUN npm install
 # Copiar código fonte
 COPY . .
 
-# Expor porta (ajuste conforme necessário)
+# Expor porta
 EXPOSE 3000
 
-# Comando para iniciar a aplicação
+# Debug: mostrar estrutura de arquivos
+RUN ls -la
+
+# Verificar se há script de start
+RUN cat package.json
+
+# Comando para iniciar
 CMD ["npm", "start"]
