@@ -61,9 +61,8 @@ server { \
     location ~ /\.ht { deny all; } \
 }' > /etc/nginx/http.d/default.conf
 
-# Supervisor (CORRETO)
-RUN cat > /etc/supervisord.conf <<'EOF'
-[supervisord]
+# Supervisor: PID 1 em foreground, sem logs
+RUN echo '[supervisord]
 nodaemon=true
 user=root
 logfile=/dev/null
@@ -78,7 +77,6 @@ stdout_logfile=/dev/stdout
 stdout_logfile_maxbytes=0
 stderr_logfile=/dev/stderr
 stderr_logfile_maxbytes=0
-priority=100
 
 [program:nginx]
 command=/usr/sbin/nginx -g "daemon off;"
@@ -88,9 +86,9 @@ stdout_logfile=/dev/stdout
 stdout_logfile_maxbytes=0
 stderr_logfile=/dev/stderr
 stderr_logfile_maxbytes=0
-priority=200
-EOF
+' > /etc/supervisord.conf
 
 EXPOSE 80
 
+# Supervisor em foreground (PID 1)
 CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisord.conf"]
