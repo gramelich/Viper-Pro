@@ -61,7 +61,7 @@ server { \
     location ~ /\.ht { deny all; } \
 }' > /etc/nginx/http.d/default.conf
 
-# Supervisor: com quebras de linha corretas e seções separadas
+# Supervisor CORRETO (com linhas em branco entre seções)
 RUN cat > /etc/supervisord.conf <<'EOF'
 [supervisord]
 nodaemon=true
