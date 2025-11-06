@@ -3,7 +3,7 @@ FROM php:8.2-fpm-alpine
 # Instalar dependências
 RUN apk add --no-cache \
     nginx git libpng-dev libjpeg-turbo-dev freetype-dev libzip-dev \
-    postgresql-dev mysql-client zip unzip netcat-openbsd sed \
+    postgresql-dev mysql-client zip unzip netcat-openbsd patch \
   && docker-php-ext-configure gd --with-freetype --with-jpeg \
   && docker-php-ext-install pdo pdo_mysql pdo_pgsql gd zip bcmath \
   && rm -rf /var/cache/apk/*
@@ -14,26 +14,43 @@ WORKDIR /var/www/html
 
 COPY . .
 
-# ===== CORREÇÃO AUTOMÁTICA DA MIGRATION =====
-# Corrigir o erro de foreign key na migration de games
-RUN if [ -f database/migrations/2023_10_07_183922_create_games_table.php ]; then \
-    sed -i "s/\$table->unsignedInteger('provider_id');/\$table->unsignedBigInteger('provider_id');/g" \
-        database/migrations/2023_10_07_183922_create_games_table.php && \
-    echo "✓ Migration de games corrigida!"; \
-fi
+# ===== CORREÇÃO DIRETA NO ARQUIVO =====
+# Criar script Python para corrigir as migrations
+RUN apk add --no-cache python3 && \
+    python3 << 'PYTHON'
+import os
+import re
 
-# Corrigir também outras possíveis migrations com o mesmo problema
-RUN find database/migrations -name "*.php" -type f -exec \
-    sed -i "s/\$table->unsignedInteger('provider_id');/\$table->unsignedBigInteger('provider_id');/g" {} \;
+migrations_dir = 'database/migrations'
+fixed_count = 0
 
-RUN find database/migrations -name "*.php" -type f -exec \
-    sed -i "s/\$table->unsignedInteger('category_id');/\$table->unsignedBigInteger('category_id');/g" {} \;
+for filename in os.listdir(migrations_dir):
+    if filename.endswith('.php'):
+        filepath = os.path.join(migrations_dir, filename)
+        
+        with open(filepath, 'r') as f:
+            content = f.read()
+        
+        # Padrões para corrigir foreign keys
+        patterns = [
+            (r"->unsignedInteger\('provider_id'\)", "->unsignedBigInteger('provider_id')"),
+            (r"->unsignedInteger\('category_id'\)", "->unsignedBigInteger('category_id')"),
+            (r"->unsignedInteger\('game_id'\)", "->unsignedBigInteger('game_id')"),
+            (r"->unsignedInteger\('user_id'\)", "->unsignedBigInteger('user_id')"),
+        ]
+        
+        original = content
+        for pattern, replacement in patterns:
+            content = re.sub(pattern, replacement, content)
+        
+        if content != original:
+            with open(filepath, 'w') as f:
+                f.write(content)
+            fixed_count += 1
+            print(f"✓ Corrigido: {filename}")
 
-RUN find database/migrations -name "*.php" -type f -exec \
-    sed -i "s/\$table->unsignedInteger('game_id');/\$table->unsignedBigInteger('game_id');/g" {} \;
-
-RUN find database/migrations -name "*.php" -type f -exec \
-    sed -i "s/\$table->unsignedInteger('user_id');/\$table->unsignedBigInteger('user_id');/g" {} \;
+print(f"\n✅ Total de arquivos corrigidos: {fixed_count}")
+PYTHON
 
 # Instalar dependências PHP
 RUN composer install --optimize-autoloader --no-interaction --no-progress --ignore-platform-reqs \
@@ -74,7 +91,7 @@ RUN echo 'server { \
     location ~ /\.(?!well-known).* { deny all; } \
 }' > /etc/nginx/http.d/default.conf
 
-# Script de inicialização otimizado
+# Script de inicialização
 RUN cat > /start.sh <<'EOF'
 #!/bin/sh
 set -e
@@ -95,51 +112,43 @@ if [ ! -z "$DB_HOST" ]; then
     done
     
     if [ $timeout -eq 0 ]; then
-        echo "❌ Timeout aguardando banco. Abortando..."
+        echo "❌ Timeout aguardando banco."
         exit 1
     fi
     
-    # Verificar se banco está vazio
+    # Verificar tabelas
     TABLE_COUNT=$(mysql -h"$DB_HOST" -P"${DB_PORT:-3306}" -u"$DB_USERNAME" -p"$DB_PASSWORD" "$DB_DATABASE" -sN -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '$DB_DATABASE' AND table_name != 'migrations';" 2>/dev/null || echo "0")
     
-    echo "Tabelas encontradas no banco: $TABLE_COUNT"
+    echo "📊 Tabelas no banco: $TABLE_COUNT"
     
     if [ "$TABLE_COUNT" = "0" ] || [ "$FORCE_FRESH" = "true" ]; then
-        echo "🔄 Criando banco de dados do zero..."
+        echo "🔄 Criando banco do zero..."
         
-        # Migrate fresh com seed
         php artisan migrate:fresh --seed --force 2>&1 | tail -100 && {
-            echo "✓ Banco criado e populado com sucesso!"
+            echo "✅ Banco criado com sucesso!"
         } || {
-            echo "⚠ Erro no migrate:fresh. Tentando sem seed..."
+            echo "⚠ Erro. Tentando sem seed..."
             php artisan migrate:fresh --force 2>&1 | tail -50
             
             if [ "$RUN_SEEDERS" = "true" ]; then
-                echo "Executando seeders..."
-                php artisan db:seed --force 2>&1 | tail -30 || echo "⚠ Seeders falharam"
+                php artisan db:seed --force 2>&1 | tail -30
             fi
         }
     else
-        echo "📊 Banco já tem dados. Rodando apenas migrate..."
+        echo "📈 Rodando migrate incremental..."
         php artisan migrate --force 2>&1 | tail -30 || echo "⚠ Nenhuma migration nova"
     fi
 fi
 
-# Cache
 php artisan config:cache 2>/dev/null || true
-
-# Permissões
 chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
 
 echo ""
-echo "✅ Setup concluído com sucesso!"
+echo "✅ Setup concluído!"
 echo "🚀 Iniciando serviços..."
 echo ""
 
-# PHP-FPM em background
 php-fpm -D
-
-# Nginx em foreground
 exec nginx -g "daemon off;"
 EOF
 
