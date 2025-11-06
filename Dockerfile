@@ -61,32 +61,36 @@ server { \
     location ~ /\.ht { deny all; } \
 }' > /etc/nginx/http.d/default.conf
 
-# Supervisor: configuração em uma linha só (sem quebras)
-RUN echo '[supervisord]\n\
-nodaemon=true\n\
-user=root\n\
-logfile=/dev/null\n\
-logfile_maxbytes=0\n\
-loglevel=error\n\
-\n\
-[program:php-fpm]\n\
-command=/usr/local/sbin/php-fpm --nodaemonize\n\
-autostart=true\n\
-autorestart=true\n\
-stdout_logfile=/dev/stdout\n\
-stdout_logfile_maxbytes=0\n\
-stderr_logfile=/dev/stderr\n\
-stderr_logfile_maxbytes=0\n\
-\n\
-[program:nginx]\n\
-command=/usr/sbin/nginx -g "daemon off;"\n\
-autostart=true\n\
-autorestart=true\n\
-stdout_logfile=/dev/stdout\n\
-stdout_logfile_maxbytes=0\n\
-stderr_logfile=/dev/stderr\n\
-stderr_logfile_maxbytes=0\n\
-' > /etc/supervisord.conf
+# Supervisor: usando cat com EOF (100% confiável)
+RUN mkdir -p /etc/supervisor/conf.d && \
+    cat > /etc/supervisord.conf <<'EOF'
+[supervisord]
+nodaemon=true
+user=root
+logfile=/dev/null
+logfile_maxbytes=0
+loglevel=error
+
+[program:php-fpm]
+command=/usr/local/sbin/php-fpm --nodaemonize
+autostart=true
+autorestart=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+priority=100
+
+[program:nginx]
+command=/usr/sbin/nginx -g "daemon off;"
+autostart=true
+autorestart=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+priority=200
+EOF
 
 EXPOSE 80
 
