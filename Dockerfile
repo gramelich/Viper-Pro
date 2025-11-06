@@ -1,6 +1,6 @@
 FROM php:8.2-fpm-alpine
 
-# Pacotes + extensões
+# Pacotes e extensões
 RUN apk add --no-cache \
     nginx \
     supervisor \
@@ -22,26 +22,18 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www/html
 COPY . .
 
-# Composer
-RUN composer install --optimize-autoloader --no-interaction --no-progress \
-    --ignore-platform-reqs \
-    || composer install --no-dev --optimize-autoloader --no-interaction --no-progress \
-    --ignore-platform-reqs
-
-# .env
-RUN cp .env.example .env 2>/dev/null || touch .env
+# Instala dependências Laravel
+RUN composer install --optimize-autoloader --no-interaction --no-progress --ignore-platform-reqs \
+ || composer install --no-dev --optimize-autoloader --no-interaction --no-progress --ignore-platform-reqs
 
 # Permissões
-RUN mkdir -p storage bootstrap/cache \
-    && chown -R www-data:www-data storage bootstrap/cache \
-    && chmod -R 775 storage bootstrap/cache
+RUN mkdir -p storage bootstrap/cache /run/php \
+ && chown -R www-data:www-data storage bootstrap/cache /run/php \
+ && chmod -R 775 storage bootstrap/cache
 
-# PHP-FPM socket
-RUN mkdir -p /run/php \
-    && sed -i 's|listen =.*|listen = /run/php/php8.2-fpm.sock|' \
-       /usr/local/etc/php-fpm.d/www.conf \
-    && echo -e "listen.owner = www-data\nlisten.group = www-data\nlisten.mode = 0660" \
-       >> /usr/local/etc/php-fpm.d/www.conf
+# Configura socket PHP-FPM
+RUN sed -i 's|listen =.*|listen = /run/php/php8.2-fpm.sock|' /usr/local/etc/php-fpm.d/www.conf \
+ && echo -e "listen.owner = www-data\nlisten.group = www-data\nlisten.mode = 0660" >> /usr/local/etc/php-fpm.d/www.conf
 
 # Nginx
 RUN echo '\
@@ -61,7 +53,7 @@ server { \
     location ~ /\.ht { deny all; } \
 }' > /etc/nginx/http.d/default.conf
 
-# Supervisor CORRETO (com linhas em branco entre seções)
+# Supervisor
 RUN cat > /etc/supervisord.conf <<'EOF'
 [supervisord]
 nodaemon=true
@@ -74,23 +66,21 @@ loglevel=error
 command=/usr/local/sbin/php-fpm --nodaemonize
 autostart=true
 autorestart=true
+startsecs=5
 stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
 stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-priority=100
 
 [program:nginx]
 command=/usr/sbin/nginx -g "daemon off;"
 autostart=true
 autorestart=true
+startsecs=5
 stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
 stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-priority=200
 EOF
 
-EXPOSE 80
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
 
-CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisord.conf"]
+EXPOSE 80
