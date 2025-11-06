@@ -20,16 +20,20 @@ WORKDIR /var/www/html
 
 COPY . .
 
-# Instalar sem otimizações (mais compatível)
+# Instalar dependências PHP
 RUN composer install --ignore-platform-reqs --no-interaction || composer install --no-dev --ignore-platform-reqs --no-interaction
 
+# Criar diretórios e configurar permissões
 RUN mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
+# Configurar Nginx
 RUN echo 'server { listen 80; root /var/www/html/public; index index.php; location / { try_files $uri $uri/ /index.php?$query_string; } location ~ \.php$ { fastcgi_pass 127.0.0.1:9000; fastcgi_index index.php; fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name; include fastcgi_params; } }' > /etc/nginx/http.d/default.conf
 
-RUN echo '[supervisord]\nnodaemon=true\n[program:php-fpm]\ncommand=php-fpm\nautostart=true\n[program:nginx]\ncommand=nginx -g "daemon off;"\nautostart=true' > /etc/supervisor/conf.d/supervisord.conf
+# Criar diretório do Supervisor e configurar
+RUN mkdir -p /etc/supervisor/conf.d \
+    && echo '[supervisord]\nnodaemon=true\n[program:php-fpm]\ncommand=php-fpm\nautostart=true\n[program:nginx]\ncommand=nginx -g "daemon off;"\nautostart=true' > /etc/supervisor/conf.d/supervisord.conf
 
 EXPOSE 80
 
