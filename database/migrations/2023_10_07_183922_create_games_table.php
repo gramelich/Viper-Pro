@@ -14,8 +14,9 @@ return new class extends Migration
         Schema::create('games', function (Blueprint $table) {
             $table->id();
             
-            // CORREÇÃO: Usa foreignId()->constrained() para compatibilidade garantida com o id() de 'providers'
-            $table->foreignId('provider_id')->constrained('providers')->onDelete('cascade');
+            // CORREÇÃO: Usando o bigInteger UNSIGNED e declarando a chave estrangeira
+            $table->bigInteger('provider_id')->unsigned()->index();
+            $table->foreign('provider_id')->references('id')->on('providers')->onDelete('cascade');
             
             $table->string('game_server_url')->nullable();
             $table->string('game_id');
