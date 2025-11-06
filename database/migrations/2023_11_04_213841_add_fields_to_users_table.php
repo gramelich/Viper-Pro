@@ -14,7 +14,10 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->string('oauth_id')->nullable();
             $table->string('oauth_type')->nullable();
-            $table->string('avatar')->nullable();
+            
+            // Coluna 'avatar' removida/comentada, pois causa o erro 'Duplicate column name' (1060).
+            // $table->string('avatar')->nullable();
+            
             $table->string('last_name')->nullable();
             $table->string('cpf', 20)->nullable();
             $table->string('phone', 30)->nullable();
@@ -38,17 +41,20 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->dropColumn('oauth_id');
             $table->dropColumn('oauth_type');
-            $table->dropColumn('avatar');
+            // Como 'avatar' não foi adicionada no 'up', não é estritamente necessário removê-la aqui,
+            // mas é bom deixar o down consistente se o UP for mudado futuramente.
+            // $table->dropColumn('avatar'); 
             $table->dropColumn('last_name');
             $table->dropColumn('cpf');
             $table->dropColumn('phone');
             $table->dropColumn('logged_in');
             $table->dropColumn('banned');
             $table->dropColumn('inviter');
+            $table->dropColumn('inviter_code'); // Adicionado
             $table->dropColumn('affiliate_revenue_share');
             $table->dropColumn('affiliate_cpa');
             $table->dropColumn('affiliate_baseline');
-            $table->dropColumn('is_agent');
+            $table->dropColumn('is_demo_agent'); // Corrigido de 'is_agent' para 'is_demo_agent'
             $table->dropColumn('status');
         });
     }
