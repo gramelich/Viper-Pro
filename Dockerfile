@@ -86,15 +86,14 @@ server { \
     } \
 }' > /etc/nginx/http.d/default.conf
 
-# Configurar Supervisor (evita erro "Invalid seek")
-RUN mkdir -p /etc/supervisor/conf.d && \
-    cat > /etc/supervisord.conf <<'EOF'
+# Supervisor (sem erro Invalid seek)
+RUN cat > /etc/supervisord.conf <<'EOF'
 [supervisord]
 nodaemon=true
 user=root
-logfile=/tmp/supervisord.log
+logfile=/dev/null
 logfile_maxbytes=0
-pidfile=/var/run/supervisord.pid
+loglevel=error
 
 [program:php-fpm]
 command=/usr/local/sbin/php-fpm --nodaemonize
