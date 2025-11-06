@@ -51,15 +51,15 @@ class CreatePermissionTables extends Migration
         });
 
         Schema::create($tableNames['model_has_permissions'], function (Blueprint $table) use ($tableNames, $columnNames, $teams) {
-            // CORRIGIDO: $pivotPermission -> $pivotPermissionKey
-            $table->unsignedBigInteger(PermissionRegistrar::$pivotPermissionKey);
+            // CORRIGIDO: Usando 'permission_id' em vez da constante
+            $table->unsignedBigInteger('permission_id');
 
             $table->string('model_type');
             $table->unsignedBigInteger($columnNames['model_morph_key']);
             $table->index([$columnNames['model_morph_key'], 'model_type'], 'model_has_permissions_model_id_model_type_index');
 
-            // CORRIGIDO: $pivotPermission -> $pivotPermissionKey
-            $table->foreign(PermissionRegistrar::$pivotPermissionKey)
+            // CORRIGIDO: Usando 'permission_id' na foreign key
+            $table->foreign('permission_id')
                 ->references('id') // permission id
                 ->on($tableNames['permissions'])
                 ->onDelete('cascade');
@@ -67,27 +67,27 @@ class CreatePermissionTables extends Migration
                 $table->unsignedBigInteger($columnNames['team_foreign_key']);
                 $table->index($columnNames['team_foreign_key'], 'model_has_permissions_team_foreign_key_index');
 
-                // CORRIGIDO: $pivotPermission -> $pivotPermissionKey
-                $table->primary([$columnNames['team_foreign_key'], PermissionRegistrar::$pivotPermissionKey, $columnNames['model_morph_key'], 'model_type'],
+                // CORRIGIDO: Usando 'permission_id' na primary key
+                $table->primary([$columnNames['team_foreign_key'], 'permission_id', $columnNames['model_morph_key'], 'model_type'],
                     'model_has_permissions_permission_model_type_primary');
             } else {
-                // CORRIGIDO: $pivotPermission -> $pivotPermissionKey
-                $table->primary([PermissionRegistrar::$pivotPermissionKey, $columnNames['model_morph_key'], 'model_type'],
+                // CORRIGIDO: Usando 'permission_id' na primary key
+                $table->primary(['permission_id', $columnNames['model_morph_key'], 'model_type'],
                     'model_has_permissions_permission_model_type_primary');
             }
 
         });
 
         Schema::create($tableNames['model_has_roles'], function (Blueprint $table) use ($tableNames, $columnNames, $teams) {
-            // CORRIGIDO: $pivotRole -> $pivotRoleKey
-            $table->unsignedBigInteger(PermissionRegistrar::$pivotRoleKey);
+            // CORRIGIDO: Usando 'role_id' em vez da constante
+            $table->unsignedBigInteger('role_id');
 
             $table->string('model_type');
             $table->unsignedBigInteger($columnNames['model_morph_key']);
             $table->index([$columnNames['model_morph_key'], 'model_type'], 'model_has_roles_model_id_model_type_index');
 
-            // CORRIGIDO: $pivotRole -> $pivotRoleKey
-            $table->foreign(PermissionRegistrar::$pivotRoleKey)
+            // CORRIGIDO: Usando 'role_id' na foreign key
+            $table->foreign('role_id')
                 ->references('id') // role id
                 ->on($tableNames['roles'])
                 ->onDelete('cascade');
@@ -95,36 +95,35 @@ class CreatePermissionTables extends Migration
                 $table->unsignedBigInteger($columnNames['team_foreign_key']);
                 $table->index($columnNames['team_foreign_key'], 'model_has_roles_team_foreign_key_index');
 
-                // CORRIGIDO: $pivotRole -> $pivotRoleKey
-                $table->primary([$columnNames['team_foreign_key'], PermissionRegistrar::$pivotRoleKey, $columnNames['model_morph_key'], 'model_type'],
+                // CORRIGIDO: Usando 'role_id' na primary key
+                $table->primary([$columnNames['team_foreign_key'], 'role_id', $columnNames['model_morph_key'], 'model_type'],
                     'model_has_roles_role_model_type_primary');
             } else {
-                // CORRIGIDO: $pivotRole -> $pivotRoleKey
-                $table->primary([PermissionRegistrar::$pivotRoleKey, $columnNames['model_morph_key'], 'model_type'],
+                // CORRIGIDO: Usando 'role_id' na primary key
+                $table->primary(['role_id', $columnNames['model_morph_key'], 'model_type'],
                     'model_has_roles_role_model_type_primary');
             }
         });
 
         Schema::create($tableNames['role_has_permissions'], function (Blueprint $table) use ($tableNames) {
-            // CORRIGIDO: $pivotPermission -> $pivotPermissionKey
-            $table->unsignedBigInteger(PermissionRegistrar::$pivotPermissionKey);
-            // CORRIGIDO: $pivotRole -> $pivotRoleKey
-            $table->unsignedBigInteger(PermissionRegistrar::$pivotRoleKey);
+            // CORRIGIDO: Usando 'permission_id' e 'role_id'
+            $table->unsignedBigInteger('permission_id');
+            $table->unsignedBigInteger('role_id');
 
-            // CORRIGIDO: $pivotPermission -> $pivotPermissionKey
-            $table->foreign(PermissionRegistrar::$pivotPermissionKey)
+            // CORRIGIDO: Usando 'permission_id' na foreign key
+            $table->foreign('permission_id')
                 ->references('id') // permission id
                 ->on($tableNames['permissions'])
                 ->onDelete('cascade');
 
-            // CORRIGIDO: $pivotRole -> $pivotRoleKey
-            $table->foreign(PermissionRegistrar::$pivotRoleKey)
+            // CORRIGIDO: Usando 'role_id' na foreign key
+            $table->foreign('role_id')
                 ->references('id') // role id
                 ->on($tableNames['roles'])
                 ->onDelete('cascade');
 
-            // CORRIGIDO: $pivotPermission e $pivotRole
-            $table->primary([PermissionRegistrar::$pivotPermissionKey, PermissionRegistrar::$pivotRoleKey], 'role_has_permissions_permission_id_role_id_primary');
+            // CORRIGIDO: Usando 'permission_id' e 'role_id' na primary key
+            $table->primary(['permission_id', 'role_id'], 'role_has_permissions_permission_id_role_id_primary');
         });
 
         app('cache')
