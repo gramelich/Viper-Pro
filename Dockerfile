@@ -23,6 +23,9 @@ COPY . .
 # Instalar dependências PHP
 RUN composer install --ignore-platform-reqs --no-interaction || composer install --no-dev --ignore-platform-reqs --no-interaction
 
+# Criar .env se não existir
+RUN if [ ! -f .env ]; then cp .env.example .env || touch .env; fi
+
 # Criar diretórios e configurar permissões
 RUN mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache \
@@ -31,7 +34,7 @@ RUN mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cac
 # Configurar Nginx
 RUN echo 'server { listen 80; root /var/www/html/public; index index.php; location / { try_files $uri $uri/ /index.php?$query_string; } location ~ \.php$ { fastcgi_pass 127.0.0.1:9000; fastcgi_index index.php; fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name; include fastcgi_params; } }' > /etc/nginx/http.d/default.conf
 
-# Configurar Supervisor com heredoc
+# Configurar Supervisor
 RUN mkdir -p /etc/supervisor/conf.d && \
     cat > /etc/supervisord.conf <<'EOF'
 [supervisord]
