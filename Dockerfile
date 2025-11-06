@@ -1,10 +1,6 @@
-# ========================================
-# Viper-Pro - Docker + Nginx + PHP-FPM
-# Alpine + Supervisor (sem erros)
-# ========================================
 FROM php:8.2-fpm-alpine
 
-# Pacotes do sistema + extensões PHP
+# Pacotes + extensões
 RUN apk add --no-cache \
     nginx \
     supervisor \
@@ -23,11 +19,10 @@ RUN apk add --no-cache \
 # Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# App
 WORKDIR /var/www/html
 COPY . .
 
-# Composer (produção com fallback)
+# Composer
 RUN composer install --optimize-autoloader --no-interaction --no-progress \
     --ignore-platform-reqs \
     || composer install --no-dev --optimize-autoloader --no-interaction --no-progress \
@@ -41,7 +36,7 @@ RUN mkdir -p storage bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
-# PHP-FPM: socket
+# PHP-FPM socket
 RUN mkdir -p /run/php \
     && sed -i 's|listen =.*|listen = /run/php/php8.2-fpm.sock|' \
        /usr/local/etc/php-fpm.d/www.conf \
@@ -56,22 +51,17 @@ server { \
     root /var/www/html/public; \
     index index.php; \
     client_max_body_size 100M; \
-    \
-    location / { \
-        try_files $uri $uri/ /index.php?$query_string; \
-    } \
-    \
+    location / { try_files $uri $uri/ /index.php?$query_string; } \
     location ~ \.php$ { \
         fastcgi_pass unix:/run/php/php8.2-fpm.sock; \
         fastcgi_index index.php; \
         include fastcgi_params; \
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name; \
     } \
-    \
     location ~ /\.ht { deny all; } \
 }' > /etc/nginx/http.d/default.conf
 
-# Supervisor (SEM Invalid seek - logfile=/dev/null)
+# Supervisor (CORRETO)
 RUN cat > /etc/supervisord.conf <<'EOF'
 [supervisord]
 nodaemon=true
