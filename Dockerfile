@@ -57,7 +57,7 @@ RUN composer install --optimize-autoloader --no-interaction --no-progress --igno
     || composer install --no-dev --optimize-autoloader --no-interaction --no-progress --ignore-platform-reqs
 
 # Preparar .env
-RUN cp .env.example .env
+RUN ["cp", ".env.example", ".env"]
 
 # Gerar APP_KEY
 RUN php artisan key:generate --force
