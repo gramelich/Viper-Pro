@@ -3,7 +3,7 @@
 namespace App\Http\Middleware;
 
 use Closure;
-use Exception; // Importar a classe Exception
+use Throwable; // <-- ALTERAÇÃO AQUI: Captura todos os erros e exceções
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -17,16 +17,14 @@ class SetDefaultLanguage
     public function handle($request, Closure $next)
     {
         try {
-            // Tenta verificar a autenticação. Se a conexão DB falhar, a exceção é capturada.
+            // Tenta verificar a autenticação.
             if (auth('api')->check()) {
                 app()->setLocale(auth('api')->user()->language);
             }
-        } catch (Exception $e) {
-            // Em caso de falha de conexão com o banco de dados ou outro erro, 
-            // não faz nada e deixa o processo seguir.
-            // O erro será registrado no log (laravel.log), mas o site não retornará 500.
-            // Opcional: registrar o erro, mas não é estritamente necessário se for apenas erro DB inicial.
-            // \Log::error('Erro no middleware de linguagem: ' . $e->getMessage());
+        } catch (Throwable $e) { // <-- CAPTURA AGORA A CLASSE PAI DE ERROS E EXCEÇÕES
+            // Em caso de qualquer falha na inicialização (DB, JWT, etc.),
+            // o erro será registrado no log, e a requisição segue.
+            \Log::error('Falha na inicialização do Auth no Middleware: ' . $e->getMessage());
         }
 
         return $next($request);
