@@ -2,12 +2,54 @@ version: '3.8'
 
 services:
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: viper_app
+    restart: unless-stopped
+    volumes:
+      - .:/var/www/html
+    environment:
+      APP_NAME: "Viper Pro"
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: https://seu-dominio.com
+      DB_CONNECTION: mysql
+      DB_HOST: pg_db_viper_new
+      DB_PORT: 3306
+      DB_DATABASE: pg_db_viper
+      DB_USERNAME: viper
+      DB_PASSWORD: Viper@2025
+      CACHE_DRIVER: file
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: sync
+      RUN_SEEDERS: true
+    depends_on:
+      - db
     ports:
-      - "80:80"
+      - "8000:80"
+
+  db:
+    image: mysql:8.0
+    container_name: pg_db_viper_new
     restart: unless-stopped
     environment:
-      - APP_ENV=local
-      - APP_DEBUG=true
-    # volumes:  # Descomente apenas para desenvolvimento local
-    #   - .:/var/www/html
+      MYSQL_ROOT_PASSWORD: Viper@2025
+      MYSQL_DATABASE: pg_db_viper
+      MYSQL_USER: viper
+      MYSQL_PASSWORD: Viper@2025
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+  node:
+    image: node:18
+    container_name: viper_node
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    command: bash -c "npm install && npm run build"
+
+volumes:
+  db_data:
