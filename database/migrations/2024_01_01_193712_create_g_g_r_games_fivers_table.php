@@ -13,8 +13,10 @@ return new class extends Migration
     {
         Schema::create('ggr_games_fivers', function (Blueprint $table) {
             $table->id();
-            $table->integer('user_id')->unsigned()->index();
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            
+            // CORREÇÃO AQUI: Garante que o tipo de dado é BIGINT UNSIGNED
+            $table->foreignId('user_id')->constrained()->onDelete('cascade'); 
+            
             $table->string('provider');
             $table->string('game');
             $table->decimal('balance_bet', 20, 2)->default(0);
