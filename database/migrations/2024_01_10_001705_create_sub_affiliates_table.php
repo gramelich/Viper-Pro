@@ -13,10 +13,13 @@ return new class extends Migration
     {
         Schema::create('sub_affiliates', function (Blueprint $table) {
             $table->id();
-            $table->integer('affiliate_id')->unsigned()->index();
-            $table->foreign('affiliate_id')->references('id')->on('users')->cascadeOnDelete();
-            $table->integer('user_id')->unsigned()->index();
-            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
+            
+            // CORREÇÃO 1: Garante compatibilidade de tipo de dado com users.id
+            $table->foreignId('affiliate_id')->constrained('users')->cascadeOnDelete();
+            
+            // CORREÇÃO 2: Garante compatibilidade de tipo de dado com users.id
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            
             $table->tinyInteger('status')->default(0);
             $table->timestamps();
         });
