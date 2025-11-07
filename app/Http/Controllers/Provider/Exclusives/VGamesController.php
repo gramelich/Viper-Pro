@@ -1,7 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api\Providers;
-
+namespace App\Http\Controllers\Provider\Exclusives;
 use App\Helpers\Core as Helper;
 use App\Http\Controllers\Controller;
 use App\Models\GameBalance;
