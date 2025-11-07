@@ -13,7 +13,7 @@ services:
       APP_NAME: "Viper Pro"
       APP_ENV: production
       APP_DEBUG: "false"
-      APP_URL: https://seu-dominio.com
+      APP_URL: https://pg-viper-pro.rkfmzx.easypanel.host/
       DB_CONNECTION: mysql
       DB_HOST: pg_db_viper_new
       DB_PORT: 3306
