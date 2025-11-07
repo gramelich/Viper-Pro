@@ -13,10 +13,14 @@ return new class extends Migration
     {
         Schema::create('mission_users', function (Blueprint $table) {
             $table->id();
-            $table->integer('user_id')->unsigned()->index();
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-            $table->integer('mission_id')->unsigned()->index();
-            $table->foreign('mission_id')->references('id')->on('missions')->onDelete('cascade');
+            
+            // CORREÇÃO: Usa foreignId() para garantir compatibilidade com users.id
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            
+            // CORREÇÃO: Usa foreignId() para garantir compatibilidade com missions.id
+            // Assumimos que a tabela 'missions' também usa $table->id()
+            $table->foreignId('mission_id')->constrained('missions')->onDelete('cascade');
+            
             $table->bigInteger('rounds')->default(0);
             $table->decimal('rewards', 10, 2)->default(0);
             $table->tinyInteger('status')->default(0);
