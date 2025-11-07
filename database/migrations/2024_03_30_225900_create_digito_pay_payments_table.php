@@ -14,10 +14,13 @@ return new class extends Migration
         Schema::create('digito_pay_payments', function (Blueprint $table) {
             $table->id();
             $table->string('payment_id')->nullable();
-            $table->integer('user_id')->unsigned()->index();
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-            $table->integer('withdrawal_id')->unsigned()->index();
-            $table->foreign('withdrawal_id')->references('id')->on('withdrawals')->onDelete('cascade');
+            
+            // CORREÇÃO 1: user_id
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            
+            // CORREÇÃO 2: withdrawal_id
+            $table->foreignId('withdrawal_id')->constrained('withdrawals')->onDelete('cascade');
+            
             $table->string('pix_key');
             $table->string('pix_type');
             $table->decimal('amount', 10, 2)->default(0);
