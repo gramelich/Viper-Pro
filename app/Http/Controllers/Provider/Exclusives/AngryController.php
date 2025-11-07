@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api\Providers\Exclusives;
+namespace App\Http\Controllers\Provider\Exclusives;
 
 use App\Enums\BalanceOriginEnum;
 use App\Enums\BalanceStatusEnum;
